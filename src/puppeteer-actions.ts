@@ -1,6 +1,13 @@
 import path from "path";
 import dotenv from "dotenv";
 import puppeteer, { Browser, ElementHandle, Frame, Page } from "puppeteer";
+import {
+  convertStringToHTML,
+  delay,
+  getFirstNumber,
+  getNumberPrice,
+  writeNumberPriceToFile,
+} from "./utils";
 
 dotenv.config();
 
@@ -31,6 +38,97 @@ export const openPage = async (browser: Browser): Promise<Page> => {
   return page;
 };
 
-export const getHash = (): Promise<string> => {
-  
+export const getHash = async (page: Page): Promise<string | null> => {
+  const forSaleButtonSelector = ".btn.btn-default.dropdown-toggle.icon-after";
+  const forSaleLinkSelector =
+    '.dropdown-menu-item.js-main-search-dd-item[data-value="sale"]';
+
+  let hash = "";
+
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api" && url.searchParams.has("hash")) {
+      hash = url.searchParams.get("hash") || "";
+    }
+  });
+
+  await page.waitForSelector(forSaleButtonSelector, {
+    visible: true,
+    timeout: 120000,
+  });
+  await page.click(forSaleButtonSelector);
+
+  await page.waitForSelector(forSaleLinkSelector, {
+    visible: true,
+    timeout: 10000,
+  });
+  await page.click(forSaleLinkSelector);
+
+  await delay(3000);
+
+  if (!hash) {
+    throw new Error("Hash not found in intercepted requests.");
+  }
+
+  return hash;
+};
+
+export const getSortedNumbersHTML = async (
+  page: Page,
+  hash: string
+): Promise<any> => {
+  const apiUrl = `https://fragment.com/api?hash=${hash}`;
+  const referrer = "https://fragment.com/numbers?sort=price_asc&filter=sale";
+  const body =
+    "type=numbers&query=&filter=sale&sort=price_asc&method=searchAuctions";
+
+  const result = await page.evaluate(
+    ({ apiUrl, referrer, body }) => {
+      return fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Accept: "application/json, text/javascript, */*; q=0.01",
+          "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-Requested-With": "XMLHttpRequest",
+          Referer: referrer,
+        },
+        body,
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.ok) {
+            if (data.html) {
+              console.log("HTML from response:", data.html);
+              return data.html;
+            }
+            throw new Error("HTML data is missing from the response");
+          } else {
+            throw new Error(
+              `Server responded with an error: ${JSON.stringify(data)}`
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch numbers array:", error);
+          throw new Error(`Error while fetching numbers: ${error.message}`);
+        });
+    },
+    { apiUrl, referrer, body }
+  );
+
+  const HTML = convertStringToHTML(result);
+
+  const firstNumberInTable = getFirstNumber(HTML);
+
+  const numberPrice = getNumberPrice(firstNumberInTable);
+  writeNumberPriceToFile(numberPrice as number);
+  console.log(numberPrice);
+
+  return "sadas";
 };

@@ -1,2 +1,3 @@
-2024/11/16-17:00:39.077 44dc Creating DB D:\MicrosoftVSCode\Projects\abuse_scripts\fragmentNumbers\user_data\Default\shared_proto_db since it was missing.
-2024/11/16-17:00:39.576 44dc Reusing MANIFEST D:\MicrosoftVSCode\Projects\abuse_scripts\fragmentNumbers\user_data\Default\shared_proto_db/MANIFEST-000001
+2024/11/16-18:48:38.743 4824 Reusing MANIFEST D:\MicrosoftVSCode\Projects\abuse_scripts\fragmentNumbers\user_data\Default\shared_proto_db/MANIFEST-000001
+2024/11/16-18:48:38.743 4824 Recovering log #3
+2024/11/16-18:48:38.744 4824 Reusing old log D:\MicrosoftVSCode\Projects\abuse_scripts\fragmentNumbers\user_data\Default\shared_proto_db/000003.log 
