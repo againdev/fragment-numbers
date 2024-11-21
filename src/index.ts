@@ -1,7 +1,8 @@
 import { Browser } from "puppeteer";
 import {
   getHash,
-  getSortedNumbersHTML,
+  isBuyNumber,
+  openAndBuyNumber,
   openBrowser,
   openPage,
 } from "./puppeteer-actions";
@@ -19,9 +20,17 @@ async function main(browser: Browser | null = null) {
   }
 
   const circle = async () => {
-    console.log(hash);
-    const sortedNumbersHTML = await getSortedNumbersHTML(page, hash);
-    await circle();
+    try {
+      console.log(hash);
+      const buyNumber = await isBuyNumber(page, hash);
+      if (buyNumber) {
+        await openAndBuyNumber(buyNumber, page);
+      }
+    } catch (error) {
+      console.error("Error fetching hash: ", error);
+    } finally {
+      await circle();
+    }
   };
 
   await circle();

@@ -27,15 +27,25 @@ export const getFirstNumber = (HTML: HTMLElement): string | undefined => {
   }
 };
 
-export const getNumberPrice = (numberString: string = ""): number | null => {
+export const getNumberPrice = (
+  numberString: string = ""
+): { number: string; price: number } | null => {
   const { document } = new JSDOM(numberString).window;
+
+  const numberElement = document.querySelector(".table-cell-value.tm-value");
+  const number = numberElement
+    ? numberElement.textContent?.trim().replace(/\s+/g, "").replace(/\+/g, "")
+    : null;
+
   const priceElement = document.querySelector(
     ".table-cell-value.tm-value.icon-before.icon-ton"
   );
+  const priceText = priceElement ? priceElement.textContent?.trim() : null;
+  const price =
+    priceText && !isNaN(Number(priceText)) ? Number(priceText) : null;
 
-  if (priceElement) {
-    const priceText = priceElement.textContent?.trim();
-    return priceText && !isNaN(Number(priceText)) ? Number(priceText) : null;
+  if (number && price !== null) {
+    return { number, price };
   } else {
     return null;
   }

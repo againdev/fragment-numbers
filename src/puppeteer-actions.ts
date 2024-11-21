@@ -1,6 +1,6 @@
 import path from "path";
 import dotenv from "dotenv";
-import puppeteer, { Browser, ElementHandle, Frame, Page } from "puppeteer";
+import puppeteer, { Browser, Page } from "puppeteer";
 import {
   convertStringToHTML,
   delay,
@@ -14,7 +14,11 @@ dotenv.config();
 export const openBrowser = async (): Promise<Browser> => {
   return await puppeteer.launch({
     headless: false,
-    args: [`--user-data-dir=${path.resolve("./user_data")}`],
+    args: [
+      `--disable-extensions-except=${path.resolve("./tonkeeper")}`,
+      `--load-extension=${path.resolve("./tonkeeper")}`,
+      `--user-data-dir=${path.resolve("./user_data")}`,
+    ],
   });
 };
 
@@ -39,9 +43,10 @@ export const openPage = async (browser: Browser): Promise<Page> => {
 };
 
 export const getHash = async (page: Page): Promise<string | null> => {
-  const forSaleButtonSelector = ".btn.btn-default.dropdown-toggle.icon-after";
+  const forSaleButtonSelector =
+    "main .btn.btn-default.dropdown-toggle.icon-after";
   const forSaleLinkSelector =
-    '.dropdown-menu-item.js-main-search-dd-item[data-value="sale"]';
+    'main .dropdown-menu-item.js-main-search-dd-item[data-value="sale"]';
 
   let hash = "";
 
@@ -73,10 +78,10 @@ export const getHash = async (page: Page): Promise<string | null> => {
   return hash;
 };
 
-export const getSortedNumbersHTML = async (
+export const isBuyNumber = async (
   page: Page,
   hash: string
-): Promise<any> => {
+): Promise<string | null> => {
   const apiUrl = `https://fragment.com/api?hash=${hash}`;
   const referrer = "https://fragment.com/numbers?sort=price_asc&filter=sale";
   const body =
@@ -126,9 +131,22 @@ export const getSortedNumbersHTML = async (
 
   const firstNumberInTable = getFirstNumber(HTML);
 
-  const numberPrice = getNumberPrice(firstNumberInTable);
-  writeNumberPriceToFile(numberPrice as number);
-  console.log(numberPrice);
+  const numberAndPrice = getNumberPrice(firstNumberInTable);
+  writeNumberPriceToFile(numberAndPrice?.price as number);
+  console.log(numberAndPrice?.number, numberAndPrice?.price);
+  //TODO Написать нормальную логику прохождения
+  if (numberAndPrice?.price) return numberAndPrice?.number;
+  return null;
+};
 
-  return "sadas";
+export const openAndBuyNumber = async (number: string, page: Page) => {
+  const url = process.env.DEFAULT_URL as string;
+  const numberUrl = `${url}/number/${number}`;
+
+  await page.goto(numberUrl, { waitUntil: "domcontentloaded" });
+
+  await page.waitForSelector(".js-buy-now-btn");
+  await page.click(".js-buy-now-btn");
+
+  await delay(30000);
 };
